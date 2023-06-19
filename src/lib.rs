@@ -1,7 +1,7 @@
 //! An RLE-like 2-bit greyscale image decoder used for displaying the
 //! Oro logo in the kernel.
 //!
-//! The first "frame" is the base image data. It is draw once at the
+//! The first "frame" is the base image data. It is drawn once at the
 //! very start of the sequence. At the end of the sequence, drawing is
 //! looped back around to the second frame (offset 1), if it exists.
 //!
