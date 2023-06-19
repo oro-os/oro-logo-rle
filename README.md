@@ -33,6 +33,14 @@ You can see a (mostly cross-platform) in-terminal example by running
 cargo run --example terminal
 ```
 
+You may also dump raw greyscale frame data using `dump`:
+
+```shell
+cargo run --example dump > /tmp/oro-logo.bin
+# using ImageMagick's `convert` utility...
+convert -delay 4 -loop 0 -size 256x256 -depth 8 gray:/tmp/oro-logo.bin /tmp/oro-logo.gif
+```
+
 Implementing the decoder for a buffer of 256x256 _linear_ pixels should be
 as simple as the following:
 
