@@ -4,7 +4,7 @@ use crossterm::{
 	execute,
 	terminal::{EnterAlternateScreen, LeaveAlternateScreen},
 };
-use oro_logo_kernel_rle::{self as oro_logo, Command, OroLogo};
+use oro_logo_rle::{self as oro_logo, Command, OroLogo};
 use std::{
 	io,
 	sync::atomic::{AtomicBool, Ordering},

@@ -1,5 +1,5 @@
 [package]
-name = "oro-logo-kernel-rle"
+name = "oro-logo-rle"
 description = "Oro logo animation in RLE format, packages for the Oro kernel"
 authors = [ "Joshua Lee Junon <junon@oro.sh> (https://github.com/qix-)" ]
 publish = false
