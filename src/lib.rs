@@ -148,7 +148,7 @@ impl<T> IntoBZip2Decoded for T where T: Iterator {}
 /// track the current frame and re-create the iterator and fast-forward
 /// in order to "repaint" with the current frame.
 ///
-/// For module operations, etc. the constant `ORO_LOGO_FRAME_COUNT` is
+/// For frame modulo operations, the constant `ORO_LOGO_FRAME_COUNT` is
 /// exposed. For recommended FPS, use `ORO_LOGO_FPS`. For future-proofing,
 /// It's recommended to either assert or somehow gracefully handle
 /// different values of `ORO_LOGO_WIDTH` and `ORO_LOGO_HEIGHT`.
