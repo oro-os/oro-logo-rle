@@ -22,6 +22,8 @@ The library is optimized for cases where individual pixel updates are expensive 
 rasterizer implementations, such as those found in the Oro kernel, or bus-issued pixel updates, such as those
 over SPI or I<sup>2</sup>C lines).
 
+The entire logo animation, as of June 20, 2023, fits in about 23KiB of static storage.
+
 # Usage
 
 You can see a (mostly cross-platform) in-terminal example by running
