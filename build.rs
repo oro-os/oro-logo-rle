@@ -46,6 +46,15 @@ macro_rules! emit {
 }
 
 pub fn main() {
+	// Some sanity checks to make sure things work with the generated source.
+	#[allow(clippy::assertions_on_constants)]
+	{
+		assert!(WIDTH <= 65535, "WIDTH must fit in a 16-bit value");
+		assert!(HEIGHT <= 65535, "HEIGHT must fit in a 16-bit value");
+		assert!(WIDTH > 0, "WIDTH cannot be 0");
+		assert!(HEIGHT > 0, "HEIGHT cannot be 0");
+	}
+
 	let mut result: Vec<u16> = Vec::new();
 
 	let mut last_bmp: Option<lodepng::Bitmap<lodepng::Grey<u8>>> = None;
@@ -154,7 +163,7 @@ pub fn main() {
 
 	// Extract the sizes
 	let (frame_width, frame_height) = match &last_bmp {
-		Some(last_bmp) => (last_bmp.width, last_bmp.height),
+		Some(last_bmp) => (last_bmp.width as u16, last_bmp.height as u16),
 		None => panic!("no frames were processed"),
 	};
 
@@ -189,9 +198,9 @@ pub fn main() {
 	}
 	let rust_code = quote::quote! {
 		/// The width of the Oro logo represented by this library
-		pub const ORO_LOGO_WIDTH: usize = #frame_width;
+		pub const ORO_LOGO_WIDTH: u16 = #frame_width;
 		/// The width of the Oro logo represented by this library
-		pub const ORO_LOGO_HEIGHT: usize = #frame_height;
+		pub const ORO_LOGO_HEIGHT: u16 = #frame_height;
 		/// The *recommended* frames per second for displaying the oro logo
 		pub const ORO_LOGO_FPS: usize = 24; // hardcoded for now
 		/// The total number of frames in the Oro logo (not counting the

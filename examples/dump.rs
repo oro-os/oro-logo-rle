@@ -4,7 +4,7 @@ use oro_logo_rle::{Command, OroLogo, ORO_LOGO_FRAME_COUNT, ORO_LOGO_HEIGHT, ORO_
 use std::io::{self, Write};
 
 fn main() {
-	let mut buffer = [0u8; ORO_LOGO_WIDTH * ORO_LOGO_HEIGHT];
+	let mut buffer = [0u8; ORO_LOGO_WIDTH as usize * ORO_LOGO_HEIGHT as usize];
 	let mut iter = OroLogo::new();
 	let mut stdout = io::stdout();
 
