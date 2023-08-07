@@ -8,6 +8,14 @@ edition = "2021"
 
 build = "build.rs"
 
+[features]
+default = []
+oro-logo-1024 = []
+oro-logo-512 = []
+oro-logo-256 = []
+oro-logo-64 = []
+oro-logo-32 = []
+
 [dependencies]
 compression = { version = "0.1.5", default-features = false, features = ["bzip2"] }
 

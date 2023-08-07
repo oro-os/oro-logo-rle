@@ -2,8 +2,6 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use compression::prelude::*;
 
 const TOTAL_FRAMES: usize = 24 * 3;
-const WIDTH: usize = 256;
-const HEIGHT: usize = 256;
 
 /// NOTE: This *can* be set to u8 to get *slightly*
 /// NOTE: better byte counts. However, it's not
@@ -45,14 +43,14 @@ macro_rules! emit {
 	};
 }
 
-pub fn main() {
+fn build_for_size(path: &str, width: usize, height: usize) {
 	// Some sanity checks to make sure things work with the generated source.
 	#[allow(clippy::assertions_on_constants)]
 	{
-		assert!(WIDTH <= 65535, "WIDTH must fit in a 16-bit value");
-		assert!(HEIGHT <= 65535, "HEIGHT must fit in a 16-bit value");
-		assert!(WIDTH > 0, "WIDTH cannot be 0");
-		assert!(HEIGHT > 0, "HEIGHT cannot be 0");
+		assert!(width <= 65535, "width must fit in a 16-bit value");
+		assert!(height <= 65535, "height must fit in a 16-bit value");
+		assert!(width > 0, "width cannot be 0");
+		assert!(height > 0, "height cannot be 0");
 	}
 
 	let mut result: Vec<u16> = Vec::new();
@@ -66,8 +64,9 @@ pub fn main() {
 		(0..TOTAL_FRAMES).chain(0..=0)
 	} {
 		let filename = format!(
-			"{}/frames/oro_{:0>5}.png",
+			"{}/frames/{}/oro_{:0>5}.png",
 			env!("CARGO_MANIFEST_DIR"),
+			path,
 			frame
 		);
 
@@ -76,9 +75,9 @@ pub fn main() {
 			_ => panic!("decode_file() returned type other than Grey"),
 		};
 
-		assert_eq!(bmp.width, WIDTH);
-		assert_eq!(bmp.height, HEIGHT);
-		assert_eq!(bmp.buffer.len(), WIDTH * HEIGHT);
+		assert_eq!(bmp.width, width);
+		assert_eq!(bmp.height, height);
+		assert_eq!(bmp.buffer.len(), width * height);
 
 		let mut state = (Command::Skip, 0u8);
 		let mut count: Cmd = 0;
@@ -161,12 +160,6 @@ pub fn main() {
 		last_bmp = Some(bmp);
 	}
 
-	// Extract the sizes
-	let (frame_width, frame_height) = match &last_bmp {
-		Some(last_bmp) => (last_bmp.width as u16, last_bmp.height as u16),
-		None => panic!("no frames were processed"),
-	};
-
 	// Compress it
 	let compressed_bytes = result
 		.iter()
@@ -196,24 +189,58 @@ pub fn main() {
 			proc_macro2::Span::call_site(),
 		));
 	}
-	let rust_code = quote::quote! {
-		/// The width of the Oro logo represented by this library
-		pub const ORO_LOGO_WIDTH: u16 = #frame_width;
-		/// The width of the Oro logo represented by this library
-		pub const ORO_LOGO_HEIGHT: u16 = #frame_height;
-		/// The *recommended* frames per second for displaying the oro logo
-		pub const ORO_LOGO_FPS: usize = 24; // hardcoded for now
-		/// The total number of frames in the Oro logo (not counting the
-		/// final "loop frame")
-		pub const ORO_LOGO_FRAME_COUNT: usize = #TOTAL_FRAMES;
 
-		const ORO_LOGO_IMG_COMPRESSED: [u8; #total_values] = [ #array ];
+	let struct_name = syn::Ident::new(
+		&format!("OroLogo{}x{}", width, height),
+		proc_macro2::Span::call_site(),
+	);
+
+	let rust_code = quote::quote! {
+		pub struct #struct_name;
+
+		#[automatically_derived]
+		impl OroLogoData for #struct_name {
+			const WIDTH: usize = #width;
+			const HEIGHT: usize = #height;
+			const FRAMES: usize = #TOTAL_FRAMES;
+			const FPS: usize = 24;
+
+			#[inline(always)]
+			fn framedata() -> &'static [u8] {
+				const COMPRESSED_DATA: [u8; #total_values] = [ #array ];
+				&COMPRESSED_DATA[..]
+			}
+		}
+
+		impl private::Sealed for #struct_name {}
 	}
 	.to_string();
 
 	std::fs::write(
-		format!("{}/oro-logo.rs", std::env::var("OUT_DIR").unwrap()),
+		format!(
+			"{}/oro-logo-{}x{}.rs",
+			std::env::var("OUT_DIR").unwrap(),
+			width,
+			height
+		),
 		rust_code,
 	)
 	.unwrap();
+}
+
+pub fn main() {
+	#[cfg(feature = "oro-logo-1024")]
+	build_for_size("1024", 1024, 1024);
+
+	#[cfg(feature = "oro-logo-512")]
+	build_for_size("512", 512, 512);
+
+	#[cfg(feature = "oro-logo-256")]
+	build_for_size("256", 256, 256);
+
+	#[cfg(feature = "oro-logo-64")]
+	build_for_size("64", 64, 64);
+
+	#[cfg(feature = "oro-logo-32")]
+	build_for_size("32", 32, 32);
 }

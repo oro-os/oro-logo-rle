@@ -1,5 +1,5 @@
 [hooks]
-pre-commit = "cargo fmt --all --check && cargo clippy --all --examples -- -D clippy::all"
+pre-commit = "cargo fmt --all --check && cargo clippy --all --examples --features oro-logo-256 -- -D clippy::all"
 
 [logging]
 verbose = true

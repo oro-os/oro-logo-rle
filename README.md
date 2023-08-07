@@ -22,7 +22,7 @@ The library is optimized for cases where individual pixel updates are expensive 
 rasterizer implementations, such as those found in the Oro kernel, or bus-issued pixel updates, such as those
 over SPI or I<sup>2</sup>C lines).
 
-The entire logo animation, as of June 20, 2023, fits in about 23KiB of static storage.
+The entire logo animation for the 256x256 variant, as of June 20, 2023, fits in about 23KiB of static storage.
 
 # Usage
 
@@ -46,16 +46,25 @@ as simple as the following:
 
 ```rust
 use oro_logo_rle::{
-	OroLogo, Command,
-	ORO_LOGO_WIDTH, ORO_LOGO_HEIGHT,
-	ORO_LOGO_FPS,
-	/* ORO_LOGO_FRAME_COUNT */
+	OroLogo, Command, OroLogoData,
+
+	// with feature `oro-logo-1024`
+	OroLogo1024x1024,
+	// with feature `oro-logo-512`
+	OroLogo512x512,
+	// with feature `oro-logo-256`
+	OroLogo256x256,
+	// with feature `oro-logo-64`
+	OroLogo64x64,
+	// with feature `oro-logo-32`
+	OroLogo32x32,
 };
 
-let mut iter = OroLogo::new();
+type OroLogoSized = OroLogo::<OroLogo256x256>;
+let mut iter = OroLogoSized::new();
 
 // (uses fictional `Color` type)
-let mut buffer = [Color; ORO_LOGO_WIDTH * ORO_LOGO_HEIGHT];
+let mut buffer = [Color; OroLogoSized::WIDTH * OroLogoSized::Height];
 
 loop {
 	let mut off = 0usize;
@@ -92,7 +101,13 @@ loop {
 }
 ```
 
+# After Effects Project
+
+The After Effects project contains all of the assets necessary to re-create the logo,
+and is located in `after-effects`.
+
 # License
 Copyright &copy; 2023, Joshua Lee Junon.
 
-A license is to be determined. Please do not use code in this repository in any fashion until one is issued.
+A license is to be determined. Please do not use code or assets in this repository
+in any fashion until one is issued.

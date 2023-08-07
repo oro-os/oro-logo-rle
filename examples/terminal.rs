@@ -4,7 +4,7 @@ use crossterm::{
 	execute,
 	terminal::{EnterAlternateScreen, LeaveAlternateScreen},
 };
-use oro_logo_rle::{self as oro_logo, Command, OroLogo};
+use oro_logo_rle::{Command, OroLogo, OroLogoData};
 use std::{
 	io,
 	sync::atomic::{AtomicBool, Ordering},
@@ -15,8 +15,21 @@ use tui::{
 	backend::CrosstermBackend, buffer::Cell, layout::Rect, style::Color, widgets::Widget, Terminal,
 };
 
+#[cfg(feature = "oro-logo-1024")]
+type OroLogoSized = oro_logo_rle::OroLogo1024x1024;
+#[cfg(feature = "oro-logo-512")]
+type OroLogoSized = oro_logo_rle::OroLogo512x512;
+#[cfg(feature = "oro-logo-256")]
+type OroLogoSized = oro_logo_rle::OroLogo256x256;
+#[cfg(feature = "oro-logo-64")]
+type OroLogoSized = oro_logo_rle::OroLogo64x64;
+#[cfg(feature = "oro-logo-32")]
+type OroLogoSized = oro_logo_rle::OroLogo32x32;
+
+type OroLogoImpl = OroLogo<OroLogoSized>;
+
 struct OroLogoRenderer {
-	iter: OroLogo,
+	iter: OroLogoImpl,
 	seen_first: bool,
 	cells: Vec<Cell>,
 }
@@ -25,11 +38,8 @@ struct OroLogoFrame(Vec<Cell>);
 
 impl OroLogoRenderer {
 	fn new() -> Self {
-		assert_eq!(oro_logo::ORO_LOGO_WIDTH, 256);
-		assert_eq!(oro_logo::ORO_LOGO_HEIGHT, 256);
-
 		Self {
-			iter: OroLogo::new(),
+			iter: OroLogoImpl::new(),
 			seen_first: false,
 			cells: vec![
 				Cell {
@@ -37,7 +47,7 @@ impl OroLogoRenderer {
 					bg: Color::Black,
 					..Cell::default()
 				};
-				256 * 256
+				OroLogoImpl::WIDTH * OroLogoImpl::HEIGHT
 			],
 		}
 	}
@@ -77,22 +87,14 @@ impl OroLogoRenderer {
 			self.seen_first = true;
 		}
 
-		OroLogoFrame(
-			self.cells
-				.iter()
-				.array_chunks::<256>()
-				.step_by(4)
-				.flat_map(|row| row.into_iter().step_by(2))
-				.cloned()
-				.collect::<Vec<_>>(),
-		)
+		OroLogoFrame(self.cells.clone())
 	}
 }
 
 impl Widget for OroLogoFrame {
 	fn render(self, _area: Rect, buf: &mut tui::buffer::Buffer) {
-		buf.area.width = 128;
-		buf.area.height = 64;
+		buf.area.width = OroLogoImpl::WIDTH as u16;
+		buf.area.height = OroLogoImpl::HEIGHT as u16;
 		buf.content = self.0;
 	}
 }
@@ -113,10 +115,13 @@ fn main() -> Result<(), io::Error> {
 	let mut logo_renderer = OroLogoRenderer::new();
 
 	while !unsafe { SHOULD_TERMINATE.load(Ordering::SeqCst) } {
-		terminal.draw(|f| f.render_widget(logo_renderer.next_frame(), Rect::new(0, 0, 128, 64)))?;
-		thread::sleep(Duration::from_millis(
-			1000 / (oro_logo::ORO_LOGO_FPS as u64),
-		));
+		terminal.draw(|f| {
+			f.render_widget(
+				logo_renderer.next_frame(),
+				Rect::new(0, 0, OroLogoImpl::WIDTH as u16, OroLogoImpl::HEIGHT as u16),
+			)
+		})?;
+		thread::sleep(Duration::from_millis(1000 / (OroLogoImpl::FPS as u64)));
 	}
 
 	execute!(terminal.backend_mut(), LeaveAlternateScreen)?;

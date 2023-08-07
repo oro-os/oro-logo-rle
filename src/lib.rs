@@ -35,9 +35,30 @@
 #![feature(iter_array_chunks)]
 
 use compression::prelude::*;
-use core::iter::{ArrayChunks, Cloned};
+use core::{
+	iter::{ArrayChunks, Cloned},
+	marker::PhantomData,
+};
 
-include!(concat!(env!("OUT_DIR"), "/oro-logo.rs"));
+#[cfg(not(any(
+	feature = "oro-logo-1024",
+	feature = "oro-logo-512",
+	feature = "oro-logo-256",
+	feature = "oro-logo-64",
+	feature = "oro-logo-32",
+)))]
+compile_error!("at least one of the 'oro-logo-*' features must be enabled");
+
+#[cfg(feature = "oro-logo-1024")]
+include!(concat!(env!("OUT_DIR"), "/oro-logo-1024x1024.rs"));
+#[cfg(feature = "oro-logo-512")]
+include!(concat!(env!("OUT_DIR"), "/oro-logo-512x512.rs"));
+#[cfg(feature = "oro-logo-256")]
+include!(concat!(env!("OUT_DIR"), "/oro-logo-256x256.rs"));
+#[cfg(feature = "oro-logo-64")]
+include!(concat!(env!("OUT_DIR"), "/oro-logo-64x64.rs"));
+#[cfg(feature = "oro-logo-32")]
+include!(concat!(env!("OUT_DIR"), "/oro-logo-32x32.rs"));
 
 /// For each frame, this denotes the "command" for the RLE rasterizer
 /// to execute. Note that it's EXTREMELY IMPORTANT the implementation
@@ -152,32 +173,34 @@ impl<T> IntoBZip2Decoded for T where T: Iterator {}
 /// exposed. For recommended FPS, use `ORO_LOGO_FPS`. For future-proofing,
 /// It's recommended to either assert or somehow gracefully handle
 /// different values of `ORO_LOGO_WIDTH` and `ORO_LOGO_HEIGHT`.
-pub struct OroLogo {
+pub struct OroLogo<D: OroLogoData> {
 	decomp: OroLogoDecoded<ArrayChunks<BZip2Decoded<Cloned<core::slice::Iter<'static, u8>>>, 2>>,
 	frame_count: usize,
+	_phantom: PhantomData<D>,
 }
 
-impl OroLogo {
+impl<D: OroLogoData> OroLogo<D> {
 	pub fn new() -> Self {
 		Self {
-			decomp: ORO_LOGO_IMG_COMPRESSED
+			decomp: D::framedata()
 				.iter()
 				.cloned()
 				.decode_bzip2()
 				.array_chunks::<2>()
 				.decode_oro_logo(),
 			frame_count: 0,
+			_phantom: PhantomData,
 		}
 	}
 }
 
-impl Default for OroLogo {
+impl<D: OroLogoData> Default for OroLogo<D> {
 	fn default() -> Self {
 		Self::new()
 	}
 }
 
-impl Iterator for OroLogo {
+impl<D: OroLogoData> Iterator for OroLogo<D> {
 	type Item = Command;
 
 	fn next(&mut self) -> Option<Self::Item> {
@@ -187,7 +210,7 @@ impl Iterator for OroLogo {
 				Some(Command::End)
 			}
 			None => {
-				self.decomp = ORO_LOGO_IMG_COMPRESSED
+				self.decomp = D::framedata()
 					.iter()
 					.cloned()
 					.decode_bzip2()
@@ -214,3 +237,33 @@ impl Iterator for OroLogo {
 		}
 	}
 }
+
+/// Raw data for a particular Oro logo variant
+pub trait OroLogoData: private::Sealed {
+	/// Width in pixels of the variant
+	const WIDTH: usize;
+	/// Height in pixels of the variant
+	const HEIGHT: usize;
+	/// Total number of frames in the variant
+	const FRAMES: usize;
+	/// The **recommended** FPS of the variant
+	const FPS: usize;
+	/// Returns the raw compressed data of the variant
+	fn framedata() -> &'static [u8];
+}
+
+impl<D: OroLogoData> OroLogoData for OroLogo<D> {
+	const WIDTH: usize = D::WIDTH;
+	const HEIGHT: usize = D::HEIGHT;
+	const FRAMES: usize = D::FRAMES;
+	const FPS: usize = D::FPS;
+	fn framedata() -> &'static [u8] {
+		D::framedata()
+	}
+}
+
+mod private {
+	pub trait Sealed {}
+}
+
+impl<D: OroLogoData> private::Sealed for OroLogo<D> {}
