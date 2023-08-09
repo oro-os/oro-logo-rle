@@ -26,6 +26,9 @@ quote = "1.0.28"
 syn = { version = "2.0.18", features = ["full"] }
 byteorder = "1.4.3"
 compression = { version = "0.1.5", default-features = false, features = ["bzip2"] }
+# Just for making lazy_static no_std compatible.
+# Version has to be kept pinned to the version used by `compression`.
+lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 
 [dev-dependencies]
 crossterm = "0.26.1"
