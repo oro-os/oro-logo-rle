@@ -1,4 +1,5 @@
 use byteorder::{LittleEndian, WriteBytesExt};
+#[cfg(feature = "compression")]
 use compression::prelude::*;
 
 const TOTAL_FRAMES: usize = 24 * 3;
@@ -161,6 +162,7 @@ fn build_for_size(path: &str, width: usize, height: usize) {
 	}
 
 	// Compress it
+	#[cfg(feature = "compression")]
 	let compressed_bytes = result
 		.iter()
 		.flat_map(|b16| {
@@ -171,6 +173,16 @@ fn build_for_size(path: &str, width: usize, height: usize) {
 		.encode(&mut BZip2Encoder::new(9), Action::Finish)
 		.collect::<Result<Vec<_>, _>>()
 		.unwrap();
+
+	#[cfg(not(feature = "compression"))]
+	let compressed_bytes = result
+		.iter()
+		.flat_map(|b16| {
+			let mut v = Vec::new();
+			v.write_u16::<LittleEndian>(*b16).unwrap();
+			v.into_iter()
+		})
+		.collect::<Vec<_>>();
 
 	// For debugging purposes, we emit the raw file.
 	// NOTE: from_u16 *might* modify the array to convert to the correct endianness.

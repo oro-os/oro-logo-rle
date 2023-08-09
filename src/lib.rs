@@ -34,6 +34,7 @@
 #![deny(unsafe_code)]
 #![feature(iter_array_chunks)]
 
+#[cfg(feature = "compression")]
 use compression::prelude::*;
 use core::{
 	iter::{ArrayChunks, Cloned},
@@ -126,38 +127,46 @@ trait IntoOroLogoDecoded {
 
 impl<T> IntoOroLogoDecoded for T where T: Sized + Iterator {}
 
-struct BZip2Decoded<I>
+struct Decompressed<I>
 where
 	I: Sized + Iterator<Item = u8>,
 {
+	#[cfg(feature = "compression")]
 	decoder: BZip2Decoder,
 	iter: I,
 }
 
-impl<I> Iterator for BZip2Decoded<I>
+impl<I> Iterator for Decompressed<I>
 where
 	I: Sized + Iterator<Item = u8>,
 {
 	type Item = u8;
 
+	#[cfg(feature = "compression")]
 	fn next(&mut self) -> Option<Self::Item> {
 		self.decoder.next(&mut self.iter).map(|r| r.unwrap())
 	}
+
+	#[cfg(not(feature = "compression"))]
+	fn next(&mut self) -> Option<Self::Item> {
+		self.iter.next()
+	}
 }
 
-trait IntoBZip2Decoded {
-	fn decode_bzip2(self) -> BZip2Decoded<Self>
+trait IntoDecompressed {
+	fn decompress(self) -> Decompressed<Self>
 	where
 		Self: Sized + Iterator<Item = u8>,
 	{
-		BZip2Decoded {
+		Decompressed {
+			#[cfg(feature = "compression")]
 			decoder: BZip2Decoder::new(),
 			iter: self,
 		}
 	}
 }
 
-impl<T> IntoBZip2Decoded for T where T: Iterator {}
+impl<T> IntoDecompressed for T where T: Iterator {}
 
 /// A singular, stateful Oro Logo command iterator.
 /// Iterating over this will yield [Command]s, which
@@ -174,7 +183,7 @@ impl<T> IntoBZip2Decoded for T where T: Iterator {}
 /// It's recommended to either assert or somehow gracefully handle
 /// different values of `ORO_LOGO_WIDTH` and `ORO_LOGO_HEIGHT`.
 pub struct OroLogo<D: OroLogoData> {
-	decomp: OroLogoDecoded<ArrayChunks<BZip2Decoded<Cloned<core::slice::Iter<'static, u8>>>, 2>>,
+	decomp: OroLogoDecoded<ArrayChunks<Decompressed<Cloned<core::slice::Iter<'static, u8>>>, 2>>,
 	frame_count: usize,
 	_phantom: PhantomData<D>,
 }
@@ -185,7 +194,7 @@ impl<D: OroLogoData> OroLogo<D> {
 			decomp: D::framedata()
 				.iter()
 				.cloned()
-				.decode_bzip2()
+				.decompress()
 				.array_chunks::<2>()
 				.decode_oro_logo(),
 			frame_count: 0,
@@ -213,7 +222,7 @@ impl<D: OroLogoData> Iterator for OroLogo<D> {
 				self.decomp = D::framedata()
 					.iter()
 					.cloned()
-					.decode_bzip2()
+					.decompress()
 					.array_chunks::<2>()
 					.decode_oro_logo();
 
